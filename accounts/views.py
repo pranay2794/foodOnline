@@ -1,11 +1,13 @@
 from django.shortcuts import redirect,render
 from django.http import HttpResponse
+
+from vendor.forms import VendorForm
 from .forms import UserForm
-from .models import User
+from .models import User, UserProfile
 from django.contrib import messages
 
 # Create your views here.
-
+# 
 def registerUser(request):
     if request.method =='POST':
         form=UserForm(request.POST)
@@ -23,7 +25,7 @@ def registerUser(request):
             username=form.cleaned_data['username']
             email=form.cleaned_data['email']
             password=form.cleaned_data['password']
-            user=User.objects.create_user(first_name=first_name,last_name=last_name,username=username,email=email,password=password)
+            user=User.objects.create_user(first_name=first_name, last_name=last_name, username=username, email=email,password=password)
             user.role=User.CUSTOMER
             user.save()
             messages.success(request,'You account has been registered successfully!')
@@ -38,47 +40,50 @@ def registerUser(request):
     }
     return render(request, 'accounts/registerUser.html',context)
 
-# from django.shortcuts import render, redirect
-# from .forms import UserForm
-# from .models import User
-# from django.contrib import messages  # For displaying messages
 
-# def registerUser(request):
-#     if request.method == 'POST':
-#         print(request.POST)
-#         form = UserForm(request.POST)
-#         if form.is_valid():
-#             # Extract the cleaned data
-#             first_name = form.cleaned_data['first_name']
-#             last_name = form.cleaned_data['last_name']
-#             username = form.cleaned_data['username']
-#             email = form.cleaned_data['email']
-#             password = form.cleaned_data['password']
+def registerVendor(request):
+    if request.method=='POST':
+        # store the data and create the user
+        form=UserForm(request.POST)
+        v_form=VendorForm(request.POST,request.FILES)
+        if form.is_valid() and v_form.is_valid():
+            first_name=form.cleaned_data['first_name']
+            last_name=form.cleaned_data['last_name']
+            username=form.cleaned_data['username']
+            email=form.cleaned_data['email']
+            password=form.cleaned_data['password']
+            user=User.objects.create_user(first_name=first_name,last_name=last_name,username=username,email=email,password=password)
+            user.role=User.VENDOR
+            user.save()
+            vendor=v_form.save(commit=False)
+            vendor.user=user
+            user_profile=UserProfile.objects.get(user=user)
+            vendor.user_profile=user_profile
+            vendor.save()
+            messages.success(request,'You account has been registered successfully! Please wait for the approval')
+            return redirect('registerVendor')
+        else:
+            print('Invalid form')
+            print(form.errors)
+    else:
+        form=UserForm()
+        v_form=VendorForm()
+    
+    context={
+        'form':form,
+        'v_form':v_form,
+    }
+    return render(request,'accounts/registerVendor.html',context)
+    
 
-#             # Check if the user already exists
-#             if User.objects.filter(username=username).exists():
-#                 messages.error(request, "Username already taken. Please choose a different one.")
-#             elif User.objects.filter(email=email).exists():
-#                 messages.error(request, "Email already registered. Please use a different email.")
-#             else:
-#                 # Create the user
-#                 user = User.objects.create_user(
-#                     first_name=first_name,
-#                     last_name=last_name,
-#                     username=username,
-#                     email=email,
-#                     password=password
-#                 )
-#                 user.role = User.CUSTOMER
-#                 user.save()
-#                 messages.success(request, "User created successfully.")
-#                 print('User is created')
-#                 return redirect('registerUser')
-#     else:
-#         form = UserForm()
 
-#     context = {'form': form}
-#     return render(request, 'accounts/registerUser.html', context)
+
+
+
+
+
+
+
 
 
 
